@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}USEVA 2.0{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><span class="brand-mark">U</span><span>USEVA<span class="brand-dot">.</span></span><small>2.0</small></div>
+    <nav>
+      <a class="{{ 'active' if request.endpoint=='dashboard' }}" href="{{ url_for('dashboard') }}"><span>⌂</span> Dashboard</a>
+      <a class="{{ 'active' if request.endpoint=='pantry' }}" href="{{ url_for('pantry') }}"><span>▦</span> Pantry</a>
+      <a class="{{ 'active' if request.endpoint=='expiry' }}" href="{{ url_for('expiry') }}"><span>◷</span> Expiry</a>
+      <a class="{{ 'active' if request.endpoint=='shopping' }}" href="{{ url_for('shopping') }}"><span>🛒</span> Shopping</a>
+      <a class="{{ 'active' if request.endpoint=='receipts' }}" href="{{ url_for('receipts') }}"><span>▤</span> Receipts</a>
+      <a class="{{ 'active' if request.endpoint=='insights' }}" href="{{ url_for('insights') }}"><span>⌁</span> Insights</a>
+    </nav>
+    <div class="side-bottom">
+      <a href="{{ url_for('settings') }}"><span>⚙</span> Settings</a>
+      <a href="{{ url_for('activity') }}"><span>◌</span> Activity</a>
+      <div class="side-tip"><strong>Waste less.</strong><br>Use what you already have.</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="search-box"><span>⌕</span><input id="globalSearch" placeholder="Search pantry, receipts, items..." onkeydown="if(event.key==='Enter') location.href='/pantry?q='+encodeURIComponent(this.value)"></div>
+      <div class="top-actions"><div class="branch-switcher" title="Switch branch"><select onchange="switchBranch(this.value)" aria-label="Current branch">{% for b in branches %}<option value="{{ b.id }}" {{ 'selected' if current_branch and b.id==current_branch.id else '' }}>{{ b.name }}</option>{% endfor %}</select><button type="button" onclick="createBranch()" title="Create branch">＋</button></div>
+        <a class="icon-btn" href="{{ url_for('expiry') }}" title="Expiry alerts">🔔</a>
+        <a class="profile" href="{{ url_for('settings') }}"><span class="avatar">{{ (auth_user["display_name"] if auth_user else "U")[:1]|upper }}</span><span class="profile-name">{{ auth_user["display_name"] if auth_user else "Account" }}</span></a>
+        <a class="logout-link" href="{{ url_for('logout') }}" title="Log out">↪</a>
+      </div>
+    </header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}<div class="toast {{ category }}">{{ message }}</div>{% endfor %}
+    {% endwith %}
+    <div class="page">{% block content %}{% endblock %}</div>
+  </main>
+</div>
+<div class="mobile-nav">
+  <a href="{{ url_for('dashboard') }}">⌂<small>Home</small></a>
+  <a href="{{ url_for('pantry') }}">▦<small>Pantry</small></a>
+  <a class="mobile-add" href="#addModal" onclick="openModal()">＋</a>
+  <a href="{{ url_for('expiry') }}">◷<small>Expiry</small></a>
+  <a href="{{ url_for('shopping') }}">🛒<small>List</small></a>
+</div>
+<div class="modal" id="addModal">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="eyebrow">QUICK ADD</div><h2>Add to USEVA</h2><p class="muted">Choose how you want to add groceries.</p>
+    <div class="add-choices">
+      <button onclick="showManual()"><span>✍️</span><strong>Manual Entry</strong><small>Add one item yourself</small></button>
+      <a class="add-choice" href="{{ url_for('receipts') }}#scan"><span>📷</span><strong>Scan Receipt</strong><small>OCR + AI receipt extraction</small></a>
+      <a class="add-choice" href="{{ url_for('grocery_snap_page') }}"><span>🥬</span><strong>Grocery Snap</strong><small>AI grocery recognition</small></a>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

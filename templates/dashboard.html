@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% block title %}USEVA 2.0 · Dashboard{% endblock %}
+{% block content %}
+<section class="hero-row">
+  <div><div class="eyebrow">YOUR KITCHEN · {{ today.strftime('%A, %d %B')|upper }}</div><h1>Good afternoon <span>👋</span></h1><p>Stay on top of your groceries and use what you have first.</p></div>
+  <button class="primary-btn" onclick="openModal()">＋ Add grocery</button>
+</section>
+
+<section class="stat-grid">
+  <div class="stat-card"><span class="stat-icon green">▦</span><div><small>Pantry value</small><strong>₹{{ '%.0f'|format(total_value) }}</strong><em>{{ items|length }} active items</em></div></div>
+  <div class="stat-card"><span class="stat-icon amber">◷</span><div><small>Expiring soon</small><strong>{{ expiry_soon|length }}</strong><em>within 7 days</em></div></div>
+  <div class="stat-card"><span class="stat-icon blue">₹</span><div><small>This month</small><strong>₹{{ '%.0f'|format(monthly_spend) }}</strong><em>grocery spending</em></div></div>
+  <div class="stat-card"><span class="stat-icon purple">🛒</span><div><small>Shopping list</small><strong>{{ shopping_count }}</strong><em>items to buy</em></div></div>
+</section>
+
+<div class="dashboard-grid">
+  <section class="card expiry-card">
+    <div class="card-head"><div><div class="eyebrow warning-text">ATTENTION NEEDED</div><h2>Expiry soon</h2></div><a href="{{ url_for('expiry') }}" class="link">View all →</a></div>
+    {% if expiry_soon %}
+      <div class="expiry-list">
+      {% for item in expiry_soon[:5] %}
+        {% set days=(item.expiry_date-today).days %}
+        <div class="expiry-row">
+          <div class="food-icon">{{ item.category.icon if item.category else '🥗' }}</div>
+          <div class="food-info"><strong>{{ item.name }}</strong><small>×{{ '%g'|format(item.quantity) }} {{ item.unit }} · Bought {{ item.purchase_date.strftime('%d %b') if item.purchase_date else '—' }} · {{ item.location }}</small></div>
+          <div class="expiry-status"><strong>{{ 'Today' if days==0 else days ~ ' days' }}</strong><span>{{ item.expiry_date.strftime('%d %b') }}</span></div>
+        </div>
+      {% endfor %}
+      </div>
+    {% else %}<div class="empty-state">✨ Nothing expires in the next 7 days.</div>{% endif %}
+  </section>
+
+  <section class="card quick-card">
+    <div class="card-head"><div><div class="eyebrow">QUICK ACTIONS</div><h2>Stay organized</h2></div></div>
+    <div class="quick-grid">
+      <button onclick="openModal()">📦<span>Add pantry item</span><small>Manual entry</small></button>
+      <a href="{{ url_for('shopping') }}">🛒<span>Shopping list</span><small>{{ shopping_count }} pending</small></a>
+      <a href="{{ url_for('receipts') }}">🧾<span>Add receipt</span><small>Track spending</small></a>
+      <a href="{{ url_for('insights') }}">📊<span>View insights</span><small>See your trends</small></a>
+    </div>
+  </section>
+</div>
+
+<div class="dashboard-grid lower">
+  <section class="card chart-card"><div class="card-head"><div><div class="eyebrow">PANTRY BREAKDOWN</div><h2>Where your food value lives</h2></div><a href="{{ url_for('pantry') }}" class="link">Pantry →</a></div><div class="chart-wrap"><canvas id="categoryChart"></canvas></div></section>
+  <section class="card">
+    <div class="card-head"><div><div class="eyebrow">SMART TIP</div><h2>Use-first suggestion</h2></div></div>
+    {% if expiry_soon %}
+      <div class="tip-box"><div class="tip-emoji">💡</div><div><strong>Start with {{ expiry_soon[0].name }}</strong><p>It expires {{ 'today' if (expiry_soon[0].expiry_date-today).days==0 else 'in ' ~ (expiry_soon[0].expiry_date-today).days ~ ' days' }}. Use it in a meal before buying more.</p><a href="{{ url_for('expiry') }}">See expiring food →</a></div></div>
+    {% else %}<div class="tip-box"><div class="tip-emoji">🌱</div><div><strong>Your pantry looks healthy</strong><p>No urgent expiry items. Keep it up!</p></div></div>{% endif %}
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script>
+new Chart(document.getElementById('categoryChart'), {type:'doughnut', data:{labels:{{ category_totals.keys()|list|tojson }}, datasets:[{data:{{ category_totals.values()|list|tojson }}, borderWidth:0}]}, options:{responsive:true,cutout:'70%',plugins:{legend:{position:'bottom'}}}});
+</script>{% endblock %}

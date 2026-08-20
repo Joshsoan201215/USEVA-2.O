@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block title %}USEVA 2.0 · Settings<div class="card" style="margin-top:20px">
+  <div class="section-head"><div><div class="eyebrow">ACCOUNT</div><h2>{{ auth_user["display_name"] if auth_user else "Account" }}</h2><p class="muted">{{ auth_user["email"] if auth_user else "" }}</p></div>
+  <a class="btn" href="{{ url_for('activity') }}">View activity</a></div>
+  <p class="muted">Credentials are stored in <strong>auth.db</strong>. Your pantry, receipts, shopping and waste data are stored separately in <strong>useva.db</strong>. Your activity history is stored in <strong>activity.db</strong>.</p>
+  <a class="btn danger" href="{{ url_for('logout') }}">Log out</a>
+</div>
+{% endblock %}
+{% block content %}
+<section class="hero-row"><div><div class="eyebrow">PREFERENCES</div><h1>Settings</h1><p>Manage reminders, branches and inventory data.</p></div></section>
+<div class="settings-grid">
+<section class="card settings-section"><h2>Branch accounts / profiles</h2><p class="muted">Create separate spaces such as Home, Shop, Office or Hostel Kitchen. Each branch keeps its own pantry, receipts, shopping list, waste records and insights.</p><div class="branch-list">{% for b in branches %}<div class="branch-card {{ 'active' if current_branch and b.id==current_branch.id else '' }}"><strong>{{ b.name }}</strong><small class="muted" style="display:block;margin-top:5px">{{ 'Current branch' if current_branch and b.id==current_branch.id else 'Separate inventory' }}</small></div>{% endfor %}</div><div style="margin-top:14px"><button class="primary-btn" type="button" onclick="createBranch()">＋ Add branch</button></div></section>
+<section class="card settings-section"><h2>Notifications</h2><label class="setting-row"><span><strong>Expiry reminders</strong><small>Alert me before food expires</small></span><input type="checkbox" checked></label><label class="setting-row"><span><strong>Shopping reminders</strong><small>Remind me about pending items</small></span><input type="checkbox" checked></label></section>
+<section class="card danger-zone settings-section"><h2>Start fresh / Clear data</h2><p class="muted">These actions remove inventory records but keep your categories, custom categories and branch accounts.</p><p><strong>Current branch: {{ current_branch.name if current_branch else '—' }}</strong></p><div style="margin-top:14px"><button class="danger-btn" type="button" onclick="clearCurrentBranch()">Clear current branch data</button><button class="danger-btn" type="button" onclick="clearAllInventory()">Clear all inventory data</button></div><small class="muted" style="display:block;margin-top:12px">Two confirmations are required before anything is deleted.</small></section>
+<section class="card settings-section"><h2>Demo data</h2><p class="muted">USEVA starts without demo inventory. Load sample records only when you explicitly want them.</p><button class="secondary-btn" onclick="fetch('/api/seed-demo',{method:'POST'}).then(()=>location.href='/')">Load demo data</button></section>
+<section class="card"><h2>About USEVA 2.0</h2><p class="muted">A food inventory, expiry, spending and waste-reduction dashboard.</p></section>
+</div><div class="card" style="margin-top:20px">
+  <div class="section-head"><div><div class="eyebrow">ACCOUNT</div><h2>{{ auth_user["display_name"] if auth_user else "Account" }}</h2><p class="muted">{{ auth_user["email"] if auth_user else "" }}</p></div>
+  <a class="btn" href="{{ url_for('activity') }}">View activity</a></div>
+  <p class="muted">Credentials are stored in <strong>auth.db</strong>. Your pantry, receipts, shopping and waste data are stored separately in <strong>useva.db</strong>. Your activity history is stored in <strong>activity.db</strong>.</p>
+  <a class="btn danger" href="{{ url_for('logout') }}">Log out</a>
+</div>
+{% endblock %}

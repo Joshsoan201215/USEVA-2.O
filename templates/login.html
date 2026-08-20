@@ -1,0 +1,20 @@
+{% extends "base_auth.html" %}
+{% block title %}Login · USEVA 2.0{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <div class="auth-brand"><span class="brand-mark">U</span><strong>USEVA<span>.</span></strong><small>2.0</small></div>
+  <div class="eyebrow">WELCOME BACK</div>
+  <h1>Sign in to your kitchen</h1>
+  <p class="muted">Your pantry, receipts, branches and activity stay tied to your account.</p>
+  {% if error %}<div class="auth-error">{{ error }}</div>{% endif %}
+  {% with messages = get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="auth-error">{{ message }}</div>{% endfor %}{% endwith %}
+  <form method="post" class="auth-form">
+    <label>Username or email<input name="identifier" autocomplete="username" required></label>
+    <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+    <button class="auth-primary" type="submit">Sign in</button>
+  </form>
+  <div class="auth-divider"><span>OR</span></div>
+  {% if google_login_enabled %}<a class="google-btn" href="{{ url_for('google_login') }}">Continue with Google</a>{% else %}<div class="google-disabled">Google Login: add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env</div>{% endif %}
+  <p class="auth-footer">New to USEVA? <a href="{{ url_for('register') }}">Create an account</a></p>
+</div>
+{% endblock %}

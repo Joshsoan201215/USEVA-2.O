@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}USEVA 2.0 · Shopping{% endblock %}
+{% block content %}
+<section class="hero-row"><div><div class="eyebrow">SMART LIST</div><h1>Shopping list</h1><p>Buy only what you actually need.</p></div></section>
+<div class="shopping-layout">
+<section class="card"><div class="card-head"><h2>Add item</h2></div><form method="post" class="add-shopping"><input name="name" required placeholder="e.g. Eggs"><input name="quantity" type="number" min="0.1" step="0.1" value="1"><input name="unit" placeholder="unit"><select name="priority"><option value="normal">Normal</option><option value="high">High priority</option></select><button class="primary-btn">Add</button></form></section>
+<section class="card"><div class="card-head"><div><div class="eyebrow">TO BUY</div><h2>{{ items|selectattr('checked','equalto',false)|list|length }} items</h2></div><div class="export-actions"><a class="secondary-btn" href="{{ url_for('export_shopping_pdf') }}">↓ PDF</a><a class="secondary-btn" href="{{ url_for('export_shopping_txt') }}">↓ TXT</a></div></div>
+<div class="shopping-list">{% for item in items %}<div class="shopping-row {{'checked' if item.checked}}"><button class="check" onclick="toggleShop({{item.id}}, this)">{{'✓' if item.checked else ''}}</button><div><strong>{{item.name}}</strong><small>{{ '%.2f'|format(item.quantity) }} {{item.unit}}</small></div><span class="priority {{item.priority}}">{{item.priority}}</span><button class="delete" onclick="deleteShop({{item.id}},this)">×</button></div>{% else %}<div class="empty-state">Your shopping list is empty.</div>{% endfor %}</div></section>
+</div>{% endblock %}
