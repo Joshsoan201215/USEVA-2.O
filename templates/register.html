@@ -1,0 +1,21 @@
+{% extends "base_auth.html" %}
+{% block title %}Create account · USEVA 2.0{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <div class="auth-brand"><span class="brand-mark">U</span><strong>USEVA<span>.</span></strong><small>2.0</small></div>
+  <div class="eyebrow">GET STARTED</div>
+  <h1>Create your USEVA account</h1>
+  <p class="muted">Each account gets its own pantry data and private branches.</p>
+  {% if error %}<div class="auth-error">{{ error }}</div>{% endif %}
+  <form method="post" class="auth-form">
+    <label>Username<input name="username" autocomplete="username" required minlength="3"></label>
+    <label>Email<input type="email" name="email" autocomplete="email" required></label>
+    <label>Password<input type="password" name="password" autocomplete="new-password" required minlength="8"></label>
+    <label>Confirm password<input type="password" name="confirm_password" autocomplete="new-password" required minlength="8"></label>
+    <button class="auth-primary" type="submit">Create account</button>
+  </form>
+  <div class="auth-divider"><span>OR</span></div>
+  {% if google_login_enabled %}<a class="google-btn" href="{{ url_for('google_login') }}">Sign up with Google</a>{% else %}<div class="google-disabled">Google Login: add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env</div>{% endif %}
+  <p class="auth-footer">Already have an account? <a href="{{ url_for('login') }}">Sign in</a></p>
+</div>
+{% endblock %}

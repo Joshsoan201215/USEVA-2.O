@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+useva.db
+static/uploads/*
+!.gitkeep
+.env
+auth.db
+activity.db

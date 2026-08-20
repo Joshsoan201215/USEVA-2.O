@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}USEVA 2.0{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+.auth-page{min-height:100vh;display:grid;place-items:center;padding:32px;background:radial-gradient(circle at 10% 10%,rgba(101,183,65,.13),transparent 35%),#f7faf7}
+.auth-card{width:min(460px,100%);background:#fff;border:1px solid #e6eee6;border-radius:28px;padding:36px;box-shadow:0 24px 80px rgba(27,60,35,.12)}
+.auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:32px;font:800 24px "Plus Jakarta Sans",sans-serif}.auth-brand .brand-mark{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#1f7a45;color:#fff}.auth-brand strong span{color:#65b741}.auth-brand small{font-size:12px;color:#89958d}
+.auth-card h1{font:800 30px/1.15 "Plus Jakarta Sans",sans-serif;margin:8px 0 10px}.auth-form{display:grid;gap:16px;margin-top:24px}.auth-form label{display:grid;gap:7px;font-weight:700;font-size:14px}.auth-form input{padding:13px 14px;border:1px solid #d7e2d9;border-radius:12px;font:inherit;outline:none}.auth-form input:focus{border-color:#65b741;box-shadow:0 0 0 3px rgba(101,183,65,.12)}
+.auth-primary,.google-btn{display:flex;justify-content:center;align-items:center;width:100%;padding:13px 16px;border-radius:12px;font-weight:800;text-decoration:none;border:0;cursor:pointer}.auth-primary{background:#1f7a45;color:#fff}.google-btn{border:1px solid #d7e2d9;color:#1d2b22;background:#fff}.google-btn:before{content:"G";font-weight:900;margin-right:9px}.auth-divider{display:flex;align-items:center;gap:12px;margin:22px 0;color:#98a59b;font-size:12px}.auth-divider:before,.auth-divider:after{content:"";height:1px;background:#e3e9e4;flex:1}.google-disabled,.auth-error{padding:11px 13px;border-radius:10px;font-size:13px;margin-top:16px}.google-disabled{background:#f5f7f5;color:#68736c}.auth-error{background:#fff1f0;color:#a33d32}.auth-footer{text-align:center;color:#718078;font-size:14px;margin:22px 0 0}.auth-footer a{color:#1f7a45;font-weight:800}
+</style></head><body><main class="auth-page">{% block content %}{% endblock %}</main></body></html>

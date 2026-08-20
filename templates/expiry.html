@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}USEVA 2.0 · Expiry{% endblock %}
+{% block content %}
+<section class="hero-row"><div><div class="eyebrow warning-text">FRESHNESS CENTER</div><h1>Expiry tracker</h1><p>Use the food that needs attention first.</p></div></section>
+{% macro section(title,items,cls) %}<section class="card expiry-section {{cls}}"><div class="card-head"><h2>{{title}}</h2><span class="count">{{items|length}}</span></div>{% if items %}{% for item in items %}<div class="expiry-row"><div class="food-icon">{{ item.category.icon if item.category else '🥗' }}</div><div class="food-info"><strong>{{item.name}}</strong><small>×{{ '%g'|format(item.quantity) }} {{item.unit}} · Bought {{item.purchase_date.strftime('%d %b') if item.purchase_date else '—'}} · {{item.location}}</small></div><div class="expiry-status"><strong>{{ item.expiry_date.strftime('%d %b') }}</strong><span>{{ (item.expiry_date-today).days|abs }} day{{ 's' if (item.expiry_date-today).days|abs != 1 }} {{ 'ago' if item.expiry_date<today else 'left' }}</span></div></div>{% endfor %}{% else %}<div class="empty-state">No items here.</div>{% endif %}</section>{% endmacro %}
+{{ section('Expired',expired,'expired') }}{{ section('Today',today_items,'today-expiry') }}{{ section('Next 7 days',soon,'soon-expiry') }}{{ section('Next 30 days',later,'later-expiry') }}
+{% endblock %}

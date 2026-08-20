@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Activity · USEVA 2.0{% endblock %}
+{% block content %}
+<div class="page-head"><div><div class="eyebrow">ACCOUNT</div><h1>Activity</h1><p class="muted">A private history of actions performed in your USEVA account.</p></div></div>
+<div class="card">
+  {% if activities %}
+  <div class="activity-list">{% for a in activities %}
+    <div class="activity-row"><div><strong>{{ a["action"] }}</strong><small>{{ a["details"] or "" }}</small></div><time>{{ a["created_at"] }}</time></div>
+  {% endfor %}</div>
+  {% else %}<div class="empty-state"><h3>No activity yet</h3><p>Your USEVA actions will appear here.</p></div>{% endif %}
+</div>
+{% endblock %}

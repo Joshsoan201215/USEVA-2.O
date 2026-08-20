@@ -1,0 +1,111 @@
+{% extends "base.html" %}{% block title %}USEVA 2.0 · Receipts{% endblock %}
+{% block content %}
+<section class="hero-row">
+  <div><div class="eyebrow">SMART PURCHASES</div><h1>Receipts</h1><p>Scan only the purchased line items. Store names, totals and receipt headers stay out of your pantry.</p></div>
+</section>
+
+<section class="card scanner-card" id="scan">
+  <div class="card-head"><div><h2>📷 Scan Receipt</h2><p class="muted">Upload a clear receipt photo. USEVA extracts the store, total and line items.</p></div><span class="badge">OCR + AI</span></div>
+  <form id="receiptScanForm" class="scan-form" enctype="multipart/form-data">
+    <label class="dropzone" id="receiptDropzone">
+      <input id="receiptImage" name="image" type="file" accept="image/png,image/jpeg,image/webp" capture="environment" required>
+      <span class="drop-icon">🧾</span><strong>Choose or take a receipt photo</strong><small>JPG, PNG or WEBP · max 10 MB</small>
+    </label>
+    <img id="receiptPreview" class="scan-preview hidden" alt="Receipt preview">
+    <button class="primary-btn" id="scanReceiptBtn" type="submit">✨ Scan Receipt</button>
+  </form>
+  <div id="receiptResult" class="scan-result hidden"></div>
+</section>
+
+<section class="card receipt-form"><div class="card-head"><h2>Manual receipt entry</h2><span class="badge">Always available</span></div>
+<form method="post" class="form-grid"><label>Store<input name="store_name" placeholder="Store name"></label><label>Date<input type="date" name="receipt_date" value="{{today.isoformat()}}"></label><label>Total (₹)<input name="total" type="number" step="0.01" min="0" required></label><button class="primary-btn">Save receipt</button></form></section>
+
+<section class="card"><div class="card-head"><div><div class="eyebrow">RECEIPT HISTORY</div><h2>History</h2></div><span class="muted">Open any receipt to view purchased items and the original image.</span></div><div class="table-wrap"><table><thead><tr><th>Store</th><th>Date</th><th>Source</th><th>Items</th><th>Total</th><th></th></tr></thead><tbody>
+{% for r in receipts %}
+<tr><td><strong>{{r.store_name}}</strong></td><td>{{r.receipt_date.strftime('%d %b %Y')}}</td><td><span class="badge">{{r.source}}</span></td><td>{{r.items|length}}</td><td><strong>₹{{'%.2f'|format(r.total)}}</strong></td><td><div class="history-actions"><button class="secondary-btn" onclick="viewReceipt({{r.id}})">👁 View</button>{% if r.items %}<button class="secondary-btn" onclick="addReceiptToPantry({{r.id}},this)">+ Pantry</button>{% endif %}</div></td></tr>
+{% else %}<tr><td colspan="6" class="empty-state">No receipts yet.</td></tr>{% endfor %}
+</tbody></table></div></section>
+
+<div class="modal" id="receiptViewModal"><div class="modal-card receipt-view-card"><button class="modal-close" onclick="closeReceiptView()">×</button><div id="receiptViewContent"></div></div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+const USEVA_CATEGORIES={{ categories|tojson }};
+const CANONICAL_CATS=['Produce','Dairy','Meat','Bakery','Beverages','Snacks','Frozen','Pantry','Other'];
+const receiptInput=document.getElementById('receiptImage'), receiptPreview=document.getElementById('receiptPreview');
+receiptInput?.addEventListener('change',()=>{const f=receiptInput.files[0];if(f){receiptPreview.src=URL.createObjectURL(f);receiptPreview.classList.remove('hidden')}});
+
+async function submitReceiptScan(allowDuplicate=false){
+ const form=document.getElementById('receiptScanForm'), btn=document.getElementById('scanReceiptBtn'), result=document.getElementById('receiptResult');
+ if(!receiptInput.files[0]) return; btn.disabled=true; btn.textContent='⏳ Reading receipt...'; result.classList.add('hidden');
+ const fd=new FormData(form); if(allowDuplicate) fd.append('allow_duplicate','1');
+ try{
+  const r=await fetch('/api/scan-receipt',{method:'POST',body:fd}),d=await r.json(); result.classList.remove('hidden');
+  if(d.duplicate){
+    const existing=d.existing||{};
+    const again=confirm(`This receipt appears to have already been uploaded.\n\nStore: ${existing.store_name||'Unknown'}\nDate: ${existing.receipt_date||'Unknown'}\nTotal: ₹${Number(existing.total||0).toFixed(2)}\n\nDo you want to upload it again?`);
+    if(again){ return submitReceiptScan(true); }
+    result.innerHTML='<div class="warning-box">Upload cancelled. The existing receipt was kept in Receipt History.</div>'; return;
+  }
+  if(!d.ok){result.innerHTML=`<div class="error-box">⚠️ ${escapeHtml(d.error)}</div>`;return}
+  window.receiptItems=d.items||[];
+  result.innerHTML=`<div class="success-box"><strong>✓ Receipt scanned — review purchased items before adding to pantry</strong><div class="scan-stats"><span>Store: ${escapeHtml(d.store_name)}</span><b>₹${Number(d.total).toFixed(2)}</b><span>${d.item_count} purchased items</span></div><div class="review-toolbar"><label><input type="checkbox" id="receiptSelectAll" checked onchange="toggleReceiptAll(this)"> Select all</label><span class="muted">Edit name, quantity, price, unit, category, purchase date, expiry, location and notes.</span></div><div class="review-items">${window.receiptItems.map((x,i)=>receiptRow(x,i)).join('')}</div><button class="primary-btn inline-btn" onclick="addSelectedReceiptItems(${d.receipt_id},this)">+ Add selected items to pantry</button></div>`;
+ }catch(err){result.classList.remove('hidden');result.innerHTML='<div class="error-box">Could not connect to the scanner.</div>'} finally{btn.disabled=false;btn.textContent='✨ Scan Receipt'}
+}
+document.getElementById('receiptScanForm')?.addEventListener('submit',async e=>{e.preventDefault();submitReceiptScan(false)});
+function categoryOptions(selected){const cats=[...new Set([...(USEVA_CATEGORIES||[]),'Other'])];return cats.map(c=>`<option value="${escapeHtml(c)}" ${c===selected?'selected':''}>${escapeHtml(c)}</option>`).join('')}
+function locationOptions(selected){return ['Pantry','Fridge','Cupboards','Freezer','Counter','Other'].map(v=>`<option value="${escapeHtml(v)}" ${v===(selected||'Pantry')?'selected':''}>${escapeHtml(v)}</option>`).join('')}
+function receiptRow(x,i){
+ const custom=(x.category && !CANONICAL_CATS.includes(x.category))?x.category:'';
+ return `<div class="review-item receipt-review-item" id="receipt-row-${x.id}">
+ <input type="checkbox" class="receipt-check" data-receipt-index="${i}" checked>
+ <div class="review-fields">
+  <label class="field-caption">Purchased item</label><input class="review-name editable-item-name" value="${escapeHtml(x.name)}" oninput="autoCategory(this,'receipt-cat-${i}');autoExpiry(this,${i})">
+  <div class="review-inline four-cols">
+   <label>Qty<input class="review-qty" type="number" step="0.1" min="0.1" value="${Number(x.quantity||1)}"></label>
+   <label>Unit<input class="review-unit" value="${escapeHtml(x.unit||'unit')}"></label>
+   <label>Unit price<input class="review-price" type="number" step="0.01" min="0" value="${Number(x.unit_price||0)}"></label>
+   <label>Category<select id="receipt-cat-${i}" class="review-cat" onchange="categoryChanged(this,'receipt-custom-${i}')">${categoryOptions(x.category)}</select></label>
+  </div>
+  <div class="review-inline four-cols detail-row">
+   <label>Purchase date<input class="review-purchase" type="date" value="${escapeHtml(x.purchase_date||'')}" onchange="autoExpiry(this,${i})"></label>
+   <label>Approx. expiry<input class="review-expiry" id="receipt-expiry-${i}" type="date" value="${escapeHtml(x.expiry_date||'')}"></label>
+   <label>Location<select class="review-location">${locationOptions(x.location||'Pantry')}</select></label>
+   <label>Notes<input class="review-notes" value="${escapeHtml(x.notes||'')}" placeholder="Optional"></label>
+  </div>
+  <div class="expiry-suggestion" id="expiry-suggestion-${i}">${x.expiry_date?'<span class="muted">Approximate expiry suggested automatically. Check the package/manufacturer date.</span>':'<button type="button" class="secondary-btn" onclick="suggestExpiry('+i+')">✨ Suggest approximate expiry</button><span class="muted">Check the package/manufacturer date when available.</span>'}</div>
+  <div id="receipt-custom-wrap-${i}" class="custom-category-wrap ${x.category==='Other'?'':'hidden'}"><label>Custom category name<input id="receipt-custom-${i}" class="review-custom-category" value="${escapeHtml(custom)}" placeholder="e.g. Frozen Foods"></label></div>
+ </div><button type="button" class="secondary-btn" onclick="saveReceiptItem(${x.id},${i},this)">Save edit</button></div>`;
+}
+function categoryChanged(select,inputId){const input=document.getElementById(inputId),wrap=document.getElementById(inputId.replace('receipt-custom-','receipt-custom-wrap-'));if(select.value==='Other'){wrap?.classList.remove('hidden');input?.focus()}else{wrap?.classList.add('hidden');if(input)input.value=''}}
+function toggleReceiptAll(box){document.querySelectorAll('.receipt-check').forEach(x=>x.checked=box.checked)}
+async function saveReceiptItem(id,i,btn){
+ const row=document.getElementById(`receipt-row-${id}`); const payload=receiptPayload(row); btn.disabled=true;
+ try{const r=await fetch(`/api/receipt-item/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!d.ok)throw new Error(d.error||'Could not save edit');window.receiptItems[i]=d.item;btn.textContent='✓ Saved';setTimeout(()=>btn.textContent='Save edit',1200)}catch(e){alert(e.message)}finally{btn.disabled=false}
+}
+function receiptPayload(row){return {name:row.querySelector('.review-name').value.trim(),quantity:row.querySelector('.review-qty').value,unit:row.querySelector('.review-unit').value.trim()||'unit',unit_price:row.querySelector('.review-price').value,category:row.querySelector('.review-cat').value,custom_category:row.querySelector('.review-custom-category')?.value.trim()||'',purchase_date:row.querySelector('.review-purchase').value,expiry_date:row.querySelector('.review-expiry').value,location:row.querySelector('.review-location').value.trim()||'Pantry',notes:row.querySelector('.review-notes').value.trim()}}
+async function addSelectedReceiptItems(id,btn){
+ const checks=[...document.querySelectorAll('.receipt-check:checked')];if(!checks.length){alert('Select at least one item.');return}btn.disabled=true;
+ try{const ids=[];for(const check of checks){const i=Number(check.dataset.receiptIndex),item=window.receiptItems[i],row=document.getElementById(`receipt-row-${item.id}`),saved=await fetch(`/api/receipt-item/${item.id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(receiptPayload(row))}),sd=await saved.json();if(!sd.ok)throw new Error(sd.error||'Could not save an edited item');window.receiptItems[i]=sd.item;ids.push(item.id)}
+  const r=await fetch(`/api/receipt/${id}/add-to-pantry`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_ids:ids})}),d=await r.json();if(!d.ok)throw new Error(d.error||'Could not add items');
+  let msg=`✓ ${d.added} new item(s) added to pantry.`;if(d.merged?.length){msg+=` ${d.merged.map(x=>`${x.name}: ${x.before} + ${x.added} = ${x.after}`).join(' · ')}`;showDuplicateNotice(d.merged)}btn.textContent=msg;
+ }catch(e){btn.disabled=false;alert(e.message)}
+}
+function showDuplicateNotice(merged){const box=document.getElementById('receiptResult');const text=merged.map(x=>`<strong>${escapeHtml(x.name)}</strong>: already had ${x.before}, added ${x.added}, now ${x.after}.`).join('<br>');box.insertAdjacentHTML('afterbegin',`<div class="warning-box">⚠️ Duplicate pantry items merged<br>${text}</div>`)}
+async function viewReceipt(id){
+ const modal=document.getElementById('receiptViewModal'),out=document.getElementById('receiptViewContent'); modal.classList.add('open'); out.innerHTML='<div class="eyebrow">RECEIPT DETAILS</div><h2>Loading…</h2>';
+ try{const r=await fetch(`/api/receipt/${id}`),d=await r.json(); if(!d.ok)throw new Error('Could not load receipt'); const x=d.receipt;
+  out.innerHTML=`<div class="eyebrow">${escapeHtml(x.source||'receipt').toUpperCase()}</div><h2>${escapeHtml(x.store_name)}</h2><p class="muted">${escapeHtml(x.receipt_date)} · Total ₹${Number(x.total||0).toFixed(2)}</p>
+  <div class="receipt-detail-grid">${x.image?`<div><img class="receipt-full-preview" src="${escapeHtml(x.image)}" alt="Original uploaded receipt"><a class="secondary-btn receipt-open-btn" href="${escapeHtml(x.image)}" target="_blank">↗ Open full image</a></div>`:'<div class="receipt-no-image">No receipt image was saved for this manual receipt.</div>'}
+  <div><h3>Purchased items (${x.items.length})</h3><div class="purchased-items">${x.items.length?x.items.map(i=>`<div class="purchased-item"><div><strong>${escapeHtml(i.name)}</strong><small>${Number(i.quantity||1).toLocaleString()} ${escapeHtml(i.unit||'unit')} · ${escapeHtml(i.category||'Other')}</small></div><span>₹${Number(i.unit_price||0).toFixed(2)}</span></div>`).join(''):'<div class="empty-state">No purchased line items were recorded for this receipt.</div>'}</div></div></div>`;
+ }catch(e){out.innerHTML=`<div class="error-box">${escapeHtml(e.message)}</div>`}
+}
+function closeReceiptView(){document.getElementById('receiptViewModal')?.classList.remove('open')}
+
+async function addReceiptToPantry(id,btn){btn.disabled=true;const r=await fetch(`/api/receipt/${id}/add-to-pantry`,{method:'POST'}),d=await r.json();if(d.ok){btn.textContent=`✓ ${d.added} added`;if(d.merged?.length)alert(d.merged.map(x=>`${x.name}: quantity ${x.before} → ${x.after}`).join('\n'))}else btn.disabled=false}
+async function autoCategory(input,selectId){const select=document.getElementById(selectId);if(!select||select.dataset.manual==='1')return;clearTimeout(input._timer);input._timer=setTimeout(async()=>{try{const r=await fetch('/api/suggest-category',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:input.value})});const d=await r.json();if(d.ok&&select.dataset.manual!=='1'){select.value=d.category;categoryChanged(select,selectId.replace('receipt-cat-','receipt-custom-'))}}catch(e){}},300)}
+async function suggestExpiry(i){const row=document.getElementById(`receipt-row-${window.receiptItems[i].id}`);const name=row.querySelector('.review-name').value.trim(),purchase=row.querySelector('.review-purchase').value;const out=document.getElementById(`expiry-suggestion-${i}`);out.classList.add('loading');try{const r=await fetch('/api/estimate-expiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,purchase_date:purchase})}),d=await r.json();if(d.ok&&d.available){row.querySelector('.review-expiry').value=d.expiry_date;out.innerHTML=`<button type="button" class="secondary-btn" onclick="suggestExpiry(${i})">↻ Recalculate</button><span class="muted">Approx. ${d.min_date} to ${d.max_date} · suggested ${d.expiry_date} · ${escapeHtml(d.note)}</span>`}else{out.innerHTML=`<button type="button" class="secondary-btn" onclick="suggestExpiry(${i})">✨ Suggest approximate expiry</button><span class="muted">${escapeHtml(d.message||'Check the package/manufacturer date.')}</span>`}}catch(e){out.innerHTML='<span class="muted">Could not calculate an estimate.</span>'}finally{out.classList.remove('loading')}}
+function autoExpiry(input,i){if(input.value) return;clearTimeout(input._expiryTimer);input._expiryTimer=setTimeout(()=>suggestExpiry(i),400)}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+</script>
+{% endblock %}

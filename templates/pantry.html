@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block title %}USEVA 2.0 · Pantry{% endblock %}
+{% block content %}
+<section class="hero-row"><div><div class="eyebrow">YOUR INVENTORY</div><h1>Pantry</h1><p>Everything you have, organized by freshness and category.</p></div><button class="primary-btn" onclick="openModal()">＋ Add item</button></section>
+<div class="filterbar">
+<form><div class="inline-search">⌕<input name="q" value="{{ q }}" placeholder="Search items in pantry..."></div><div class="inline-search category-search">🏷️<input name="category_q" value="{{ category_q or '' }}" list="categoryList" placeholder="Search category..."></div><datalist id="categoryList">{% for c in categories %}<option value="{{ c.name }}">{% endfor %}</datalist><select name="category" onchange="this.form.submit()"><option value="">All categories</option>{% for c in categories %}<option value="{{ c.name }}" {{ 'selected' if selected==c.name }}>{{ c.name }}</option>{% endfor %}</select><button class="secondary-btn" type="submit">Search</button></form>
+</div>
+<div class="food-grid">
+{% for item in items %}
+  {% set days=(item.expiry_date-today).days if item.expiry_date else 999 %}
+  <article class="food-card {{ 'danger' if days<=2 else 'warn' if days<=7 else '' }}">
+    <div class="food-card-top"><span class="large-food-icon">{{ item.category.icon if item.category else '🛒' }}</span><span class="mini-status">{{ 'Expired' if days<0 else 'Expires today' if days==0 else 'Expiring soon · ' ~ days ~ 'd left' if days<=7 else days ~ 'd left' if item.expiry_date else 'No expiry' }}</span></div>
+    <h3>{{ item.name }}</h3><p class="pantry-quantity"><span class="qty-badge {{ 'qty-high' if item.quantity > 5 else '' }}">×{{ ('%.2f'|format(item.quantity)).rstrip('0').rstrip('.') }}</span> <strong>{{ '%g'|format(item.quantity) }} {{ item.unit }}</strong> {% if item.quantity > 5 %}<span class="qty-warning" title="High quantity — more than 5 units">⚠ High quantity</span>{% endif %} · {{ item.location }}</p>
+    {% if lot_counts.get(item.id, 1) > 1 %}<div class="lot-warning">⚠️ Multiple {{ item.name }} lots — each lot keeps its own purchase & expiry date.</div>{% endif %}
+    <div class="food-meta"><strong>₹{{ '%.0f'|format(item.price or 0) }}</strong><span>Bought: {{ item.purchase_date.strftime('%d %b %Y') if item.purchase_date else '—' }}</span><span>Expiry: {{ item.expiry_date.strftime('%d %b %Y') if item.expiry_date else '—' }}</span></div>
+    <div class="progress"><i style="width:{{ [100, [10 + days*10, 10]|max]|min }}%"></i></div>
+    <div class="card-actions"><button onclick="openEditItem({{ item.id }}, {{ item.name|tojson }}, {{ item.quantity|tojson }}, {{ item.unit|tojson }}, {{ item.price|tojson }}, {{ item.purchase_date.isoformat()|tojson if item.purchase_date else ""|tojson }}, {{ item.expiry_date.isoformat()|tojson if item.expiry_date else ""|tojson }}, {{ item.location|tojson }}, {{ item.notes|tojson }}, {{ (item.category.name if item.category else "Other")|tojson }})">✎ Edit</button><button onclick="itemAction('/item/{{ item.id }}/consume', this, 'consume', {{ item.quantity|tojson }}, {{ item.unit|tojson }})">✓ Consume</button><button onclick="itemAction('/item/{{ item.id }}/waste', this, 'waste', {{ item.quantity|tojson }}, {{ item.unit|tojson }})">Waste</button></div>
+  </article>
+{% else %}<div class="empty-state wide">No pantry items found. Add your first grocery item.</div>{% endfor %}
+</div>
+{% endblock %}
